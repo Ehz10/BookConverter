@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: pdf-to-epub
+    env: python
+    buildCommand: ""
+    startCommand: "gunicorn app:app"
+    autoDeploy: true
