@@ -21,20 +21,24 @@ def convert():
     if file.filename == '':
         return "No selected file", 400
 
-    filename = f"{uuid.uuid4()}.pdf"
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    # Get original name and create safe temp name for upload
+    original_filename = file.filename
+    base_name = os.path.splitext(original_filename)[0]
+    temp_filename = f"{uuid.uuid4()}.pdf"
+    filepath = os.path.join(UPLOAD_FOLDER, temp_filename)
     file.save(filepath)
 
-    epub_path = filepath.replace('.pdf', '.epub')
+    # Output EPUB path with original name
+    epub_path = os.path.join(UPLOAD_FOLDER, f"{base_name}.epub")
 
     try:
-        # Open the PDF
+        # Open PDF
         doc = fitz.open(filepath)
 
-        # Create EPUB book
+        # Create EPUB
         book = epub.EpubBook()
         book.set_identifier(str(uuid.uuid4()))
-        book.set_title('Converted PDF')
+        book.set_title(base_name)
         book.set_language('en')
 
         chapters = []
@@ -48,7 +52,6 @@ def convert():
             book.add_item(chapter)
             chapters.append(chapter)
 
-
         book.toc = chapters
         book.add_item(epub.EpubNcx())
         book.add_item(epub.EpubNav())
@@ -57,13 +60,12 @@ def convert():
         epub.write_epub(epub_path, book)
         doc.close()
 
-        return send_file(epub_path, as_attachment=True)
+        return send_file(epub_path, as_attachment=True, download_name=f"{base_name}.epub")
 
     except Exception as e:
         return f"Conversion failed: {e}", 500
 
     finally:
-        # Clean up uploaded file
         try:
             if os.path.exists(filepath):
                 os.remove(filepath)
